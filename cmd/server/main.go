@@ -79,17 +79,17 @@ func seedDefaultConfigs(db *gorm.DB) error {
 			{
 				ClientID: "qb-home",
 				Type:     "qbittorrent",
-				Host:     "http://192.168.50.4:10001",
-				Username: "DongShu",
-				Password: "P4pyMK2FQZoWomu",
+				Host:     "http://localhost:8080",
+				Username: "admin",
+				Password: "adminpass",
 				Enabled:  true,
 			},
 			{
 				ClientID: "tr-seedbox",
 				Type:     "transmission",
-				Host:     "192.168.50.4",
-				Username: "DongShu",
-				Password: "P4pyMK2FQZoWomu",
+				Host:     "localhost:9091",
+				Username: "admin",
+				Password: "adminpass",
 				Enabled:  true,
 			},
 		}

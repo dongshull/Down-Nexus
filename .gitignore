@@ -47,3 +47,9 @@ data/*.db-wal
 # Temporary files
 *.tmp
 *.temp
+
+# Configuration files (keep local only)
+config.json
+*.config
+.env
+.env.local

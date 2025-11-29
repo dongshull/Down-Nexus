@@ -1,0 +1,20 @@
+{
+  "clients": [
+    {
+      "client_id": "qb-home",
+      "type": "qbittorrent",
+      "host": "http://localhost:8080",
+      "username": "your_username",
+      "password": "your_password",
+      "enabled": true
+    },
+    {
+      "client_id": "tr-seedbox",
+      "type": "transmission",
+      "host": "localhost:9091",
+      "username": "your_username",
+      "password": "your_password",
+      "enabled": true
+    }
+  ]
+}
