@@ -34,9 +34,14 @@ ehthumbs.db
 Thumbs.db
 
 # Database files
+# SQLite (no longer used)
 data/*.db
 data/*.db-journal
 data/*.db-wal
+
+# PostgreSQL configuration (keep local only)
+*.env
+.env.local
 
 # CodeBuddy files
 .codebuddy/

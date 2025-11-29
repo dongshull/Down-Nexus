@@ -4,15 +4,15 @@ import (
 	"fmt"
 
 	"down-nexus-api/internal/models"
-	"gorm.io/driver/sqlite"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-// InitDB 初始化 SQLite 数据库连接
+// InitDB 初始化 PostgreSQL 数据库连接
 // 自动创建表结构并返回数据库实例
 func InitDB(dsn string) (*gorm.DB, error) {
-	// 连接 SQLite 数据库
-	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
+	// 连接 PostgreSQL 数据库
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}

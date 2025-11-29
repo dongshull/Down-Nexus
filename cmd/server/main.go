@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net"
+	"os"
 
 	"down-nexus-api/internal/api"
 	"down-nexus-api/internal/core"
@@ -14,10 +15,16 @@ import (
 	"down-nexus-api/pkg/database"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"gorm.io/gorm"
 )
 
 func main() {
+	// 加载 .env 文件
+	if err := godotenv.Load(); err != nil {
+		log.Println("⚠️  未找到 .env 文件，使用默认环境变量")
+	}
+	
 	// 设置 Gin 为发布模式，隐藏调试信息
 	gin.SetMode(gin.ReleaseMode)
 	
@@ -26,15 +33,27 @@ func main() {
 
 	// 初始化数据库
 	fmt.Println("🗄️  正在初始化数据库...")
-	db, err := database.InitDB("data/down_nexus.db")
+	
+	// 从环境变量构建 PostgreSQL 连接字符串
+	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
+		getEnv("DB_HOST", "localhost"),
+		getEnv("DB_USER", "downnexus"),
+		getEnv("DB_PASSWORD", "downnexus"),
+		getEnv("DB_NAME", "downnexus"),
+		getEnv("DB_PORT", "5432"),
+		getEnv("DB_SSLMODE", "disable"),
+		getEnv("DB_TIMEZONE", "Asia/Shanghai"),
+	)
+	
+	db, err := database.InitDB(dsn)
 	if err != nil {
 		log.Fatalf("❌ 数据库初始化失败: %v", err)
 	}
-	fmt.Println("   ✨ 数据库连接成功")
+	fmt.Println("   ✨ PostgreSQL 数据库连接成功")
 
-	// 检查并插入默认配置
-	if err := seedDefaultConfigs(db); err != nil {
-		log.Fatalf("❌ 默认配置插入失败: %v", err)
+	// 检查数据库配置
+	if err := checkDatabaseConfig(db); err != nil {
+		log.Fatalf("❌ 数据库配置检查失败: %v", err)
 	}
 
 	// 从数据库加载客户端配置
@@ -53,8 +72,8 @@ func main() {
 	fmt.Println("🌐 API 路由配置完成")
 
 	// 启动服务器
-	port := ":8081"
-	portNum := "8081"
+	portNum := getEnv("SERVER_PORT", "8081")
+	port := ":" + portNum
 	
 	printServerInfo(portNum)
 	printAPIInfo()
@@ -66,43 +85,22 @@ func main() {
 	}
 }
 
-// seedDefaultConfigs 插入默认配置数据
-func seedDefaultConfigs(db *gorm.DB) error {
+// checkDatabaseConfig 检查数据库配置
+func checkDatabaseConfig(db *gorm.DB) error {
 	var count int64
 	db.Model(&models.ClientConfig{}).Count(&count)
 	
-	// 如果表为空，插入默认配置
 	if count == 0 {
-		fmt.Println("   📝 检测到空数据库，插入默认配置...")
-		
-		defaultConfigs := []models.ClientConfig{
-			{
-				ClientID: "qb-home",
-				Type:     "qbittorrent",
-				Host:     "http://localhost:8080",
-				Username: "admin",
-				Password: "adminpass",
-				Enabled:  true,
-			},
-			{
-				ClientID: "tr-seedbox",
-				Type:     "transmission",
-				Host:     "localhost:9091",
-				Username: "admin",
-				Password: "adminpass",
-				Enabled:  true,
-			},
-		}
-
-		for _, config := range defaultConfigs {
-			if err := db.Create(&config).Error; err != nil {
-				return fmt.Errorf("failed to create default config %s: %w", config.ClientID, err)
-			}
-		}
-		
-		fmt.Println("   ✨ 默认配置插入完成")
+		fmt.Println("   ⚠️  数据库为空，请手动配置客户端")
+		fmt.Println("   💡 参考 config.example.json 文件进行配置")
+		fmt.Println("   📝 您可以通过以下方式添加配置：")
+		fmt.Println("      1. 直接修改 SQLite 数据库")
+		fmt.Println("      2. 使用配置文件导入功能（开发中）")
+		fmt.Println("      3. 使用 API 接口（开发中）")
+		return fmt.Errorf("database is empty, please configure clients manually")
 	}
 	
+	fmt.Printf("   ✨ 发现 %d 个客户端配置\n", count)
 	return nil
 }
 
@@ -146,6 +144,14 @@ func loadClientsFromDB(db *gorm.DB) ([]clients.DownloaderClient, error) {
 	}
 	
 	return adapters, nil
+}
+
+// getEnv 获取环境变量，如果不存在则返回默认值
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
 }
 
 // printBanner 打印精美的启动横幅

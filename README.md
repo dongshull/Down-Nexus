@@ -15,6 +15,7 @@
 ### 环境要求
 
 - Go 1.19+
+- PostgreSQL 12+
 - qBittorrent 或 Transmission 客户端
 
 ### 安装运行
@@ -33,11 +34,19 @@ go run cmd/server/main.go
 
 ### 配置客户端
 
-首次运行时，系统会自动创建数据库并插入默认配置。您可以通过以下方式管理客户端配置：
+首次运行时，系统会创建空的数据库。您需要手动配置客户端：
 
-1. **直接修改数据库** (推荐用于生产环境)
-2. **使用 API 接口** (开发中)
-3. **参考配置文件**: `config.example.json`
+1. **直接修改数据库** (推荐)
+   ```sql
+   INSERT INTO client_configs (client_id, type, host, username, password, enabled) 
+   VALUES ('qb-home', 'qbittorrent', 'http://localhost:8080', 'your_username', 'your_password', true);
+   ```
+
+2. **参考配置文件**: `config.example.json`
+
+3. **使用 API 接口** (开发中)
+
+⚠️ **注意**: 首次运行时如果数据库为空，服务器会退出并提示配置客户端。
 
 ## API 接口
 
@@ -67,7 +76,7 @@ Down-Nexus/
 ├── pkg/                # 公共包
 │   ├── clients/        # 客户端适配器
 │   └── database/       # 数据库连接
-├── data/               # 数据库文件 (本地)
+├── data/               # 数据文件目录 (已弃用)
 └── config.example.json # 配置文件示例
 ```
 
@@ -79,19 +88,29 @@ Down-Nexus/
 2. 实现 `DownloaderClient` 接口
 3. 在 `loadClientsFromDB` 函数中添加新的 case
 
-### 数据库模型
+### 数据库配置
 
-客户端配置存储在 `client_configs` 表中：
+#### PostgreSQL 设置
 
+1. **创建数据库和用户**:
+```sql
+CREATE DATABASE downnexus;
+CREATE USER downnexus WITH PASSWORD 'downnexus';
+GRANT ALL PRIVILEGES ON DATABASE downnexus TO downnexus;
+```
+
+2. **客户端配置表**:
 ```sql
 CREATE TABLE client_configs (
-    id INTEGER PRIMARY KEY,
+    id SERIAL PRIMARY KEY,
     client_id TEXT UNIQUE NOT NULL,
     type TEXT NOT NULL,
     host TEXT NOT NULL,
     username TEXT NOT NULL,
     password TEXT NOT NULL,
-    enabled BOOLEAN DEFAULT TRUE
+    enabled BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 ```
 
