@@ -64,7 +64,7 @@ func main() {
 	}
 
 	// 创建核心服务
-	torrentService := core.NewTorrentService(adapters)
+	torrentService := core.NewTorrentService(adapters, db)
 	fmt.Println("🎯 核心服务初始化完成")
 
 	// 设置路由器
@@ -76,7 +76,6 @@ func main() {
 	port := ":" + portNum
 	
 	printServerInfo(portNum)
-	printAPIInfo()
 
 	// 启动 HTTP 服务器
 	fmt.Println("🚀 服务器正在启动...")
@@ -91,13 +90,38 @@ func checkDatabaseConfig(db *gorm.DB) error {
 	db.Model(&models.ClientConfig{}).Count(&count)
 	
 	if count == 0 {
-		fmt.Println("   ⚠️  数据库为空，请手动配置客户端")
-		fmt.Println("   💡 参考 config.example.json 文件进行配置")
-		fmt.Println("   📝 您可以通过以下方式添加配置：")
-		fmt.Println("      1. 直接修改 SQLite 数据库")
-		fmt.Println("      2. 使用配置文件导入功能（开发中）")
-		fmt.Println("      3. 使用 API 接口（开发中）")
-		return fmt.Errorf("database is empty, please configure clients manually")
+		fmt.Println("   ⚠️  数据库为空，正在创建默认配置...")
+		
+		// 从环境变量读取默认配置
+		defaultConfigs := []models.ClientConfig{
+			{
+				ClientID: "qb-default",
+				Type:     "qbittorrent",
+				Host:     getEnv("QB_HOST", "http://localhost:8080"),
+				Username: getEnv("QB_USERNAME", "admin"),
+				Password: getEnv("QB_PASSWORD", "adminpass"),
+				Enabled:  true,
+			},
+			{
+				ClientID: "tr-default", 
+				Type:     "transmission",
+				Host:     getEnv("TR_HOST", "localhost:9091"),
+				Username: getEnv("TR_USERNAME", "admin"),
+				Password: getEnv("TR_PASSWORD", "adminpass"),
+				Enabled:  true,
+			},
+		}
+
+		for _, config := range defaultConfigs {
+			if err := db.Create(&config).Error; err != nil {
+				return fmt.Errorf("failed to create default config %s: %w", config.ClientID, err)
+			}
+			fmt.Printf("   ✨ 创建默认配置: %s (%s)\n", config.ClientID, config.Type)
+		}
+		
+		fmt.Println("   💡 请在 .env 文件中修改实际的客户端配置")
+		fmt.Printf("   📝 已创建 %d 个默认客户端配置\n", len(defaultConfigs))
+		return nil
 	}
 	
 	fmt.Printf("   ✨ 发现 %d 个客户端配置\n", count)
@@ -154,28 +178,16 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-// printBanner 打印精美的启动横幅
+// printBanner 打印启动横幅
 func printBanner() {
-	fmt.Println()
-	fmt.Println("╔══════════════════════════════════════════════════════════════╗")
-	fmt.Println("║                                                              ║")
-	fmt.Println("║                    🌟 Down-Nexus API 🌟                      ║")
-	fmt.Println("║                                                              ║")
-	fmt.Println("║                   多客户端种子管理系统                        ║")
-	fmt.Println("║                                                              ║")
-	fmt.Println("║                     Version: v1.0.0                          ║")
-	fmt.Println("║                                                              ║")
-	fmt.Println("╚══════════════════════════════════════════════════════════════╝")
+	fmt.Println("🌟 Down-Nexus API v1.0.0 - 多客户端种子管理系统")
 	fmt.Println()
 }
 
 // printServerInfo 打印服务器信息
 func printServerInfo(portNum string) {
-	fmt.Println()
-	fmt.Println("┌──────────────────────────────────────────────────────────────┐")
-	fmt.Println("│                    🌐 服务器访问地址                           │")
-	fmt.Println("├──────────────────────────────────────────────────────────────┤")
-	fmt.Printf("│  📍 本机地址:  %-45s │\n", fmt.Sprintf("http://localhost:%s/", portNum))
+	fmt.Println("🌐 服务器访问地址:")
+	fmt.Printf("   📍 本机: http://localhost:%s/\n", portNum)
 	
 	// 获取内网IP地址
 	addrs, err := net.InterfaceAddrs()
@@ -186,36 +198,12 @@ func printServerInfo(portNum string) {
 					ipStr := ipNet.IP.String()
 					// 过滤掉 198.18.0.1 这个IP地址
 					if ipStr != "198.18.0.1" {
-						fmt.Printf("│  🌍 内网地址:  %-45s │\n", fmt.Sprintf("http://%s:%s/", ipStr, portNum))
+						fmt.Printf("   🌍 内网: http://%s:%s/\n", ipStr, portNum)
 					}
 				}
 			}
 		}
 	}
-	fmt.Println("└──────────────────────────────────────────────────────────────┘")
+	fmt.Println()
 }
 
-// printAPIInfo 打印API接口信息
-func printAPIInfo() {
-	fmt.Println()
-	fmt.Println("┌──────────────────────────────────────────────────────────────┐")
-	fmt.Println("│                      📚 API 接口列表                           │")
-	fmt.Println("├──────────────────────────────────────────────────────────────┤")
-	fmt.Println("│  🏠 基础接口:                                                 │")
-	fmt.Println("│     GET  /                    - 欢迎页面                       │")
-	fmt.Println("│     GET  /health              - 健康检查                       │")
-	fmt.Println("│                                                              │")
-	fmt.Println("│  🔥 种子管理:                                                 │")
-	fmt.Println("│     GET  /api/v1/torrents     - 获取所有种子                   │")
-	fmt.Println("│     POST /api/v1/torrents     - 添加种子                       │")
-	fmt.Println("│     POST /api/v1/torrents/pause   - 暂停种子                   │")
-	fmt.Println("│     POST /api/v1/torrents/resume  - 恢复种子                   │")
-	fmt.Println("│     DELETE /api/v1/torrents   - 删除种子                       │")
-	fmt.Println("│                                                              │")
-	fmt.Println("│  🔧 客户端管理:                                                │")
-	fmt.Println("│     GET  /api/v1/clients      - 获取客户端列表                 │")
-	fmt.Println("│                                                              │")
-	fmt.Println("│  📖 完整文档: API_DOCS.md                                      │")
-	fmt.Println("└──────────────────────────────────────────────────────────────┘")
-	fmt.Println()
-}

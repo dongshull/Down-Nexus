@@ -70,24 +70,28 @@ func (h *TorrentHandler) AddTorrent(c *gin.Context) {
 
 // GetClients 获取所有客户端信息的处理器
 func (h *TorrentHandler) GetClients(c *gin.Context) {
-	// 获取所有种子来推断客户端信息
-	torrents := h.service.GetAllTorrents()
-	
-	// 使用 map 去重收集客户端信息
-	clients := make(map[string]map[string]interface{})
-	for _, torrent := range torrents {
-		if _, exists := clients[torrent.ClientID]; !exists {
-			clients[torrent.ClientID] = map[string]interface{}{
-				"id":     torrent.ClientID,
-				"name":   torrent.ClientID, // 可以后续优化为更友好的名称
-				"status": "online",
-			}
-		}
+	// 直接从数据库获取客户端配置
+	clientConfigs, err := h.service.GetClientConfigs()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"success": false,
+			"error":   "Failed to get client configs: " + err.Error(),
+		})
+		return
 	}
 
-	// 转换为切片
-	clientList := make([]map[string]interface{}, 0, len(clients))
-	for _, client := range clients {
+	// 转换为 API 响应格式
+	clientList := make([]map[string]interface{}, 0, len(clientConfigs))
+	for _, config := range clientConfigs {
+		client := map[string]interface{}{
+			"id":       config.ClientID,
+			"name":     config.ClientID, // 可以后续优化为更友好的名称
+			"type":     config.Type,
+			"host":     config.Host,
+			"username": config.Username,
+			"enabled":  config.Enabled,
+			"status":   "configured", // 表示已配置
+		}
 		clientList = append(clientList, client)
 	}
 

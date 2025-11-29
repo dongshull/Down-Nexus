@@ -4,15 +4,18 @@ import (
 	"sync"
 	"down-nexus-api/internal/models"
 	"down-nexus-api/pkg/clients"
+	"gorm.io/gorm"
 )
 
 type TorrentService struct {
 	clients []clients.DownloaderClient
+	db      *gorm.DB
 }
 
-func NewTorrentService(clients []clients.DownloaderClient) *TorrentService {
+func NewTorrentService(clients []clients.DownloaderClient, db *gorm.DB) *TorrentService {
 	return &TorrentService{
 		clients: clients,
+		db:      db,
 	}
 }
 
@@ -114,4 +117,11 @@ type ClientNotFoundError struct {
 
 func (e *ClientNotFoundError) Error() string {
 	return "client not found: " + e.ClientID
+}
+
+// GetClientConfigs 获取所有客户端配置
+func (ts *TorrentService) GetClientConfigs() ([]models.ClientConfig, error) {
+	var configs []models.ClientConfig
+	err := ts.db.Find(&configs).Error
+	return configs, err
 }
