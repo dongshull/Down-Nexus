@@ -24,16 +24,16 @@ func main() {
 	if err := godotenv.Load(); err != nil {
 		log.Println("⚠️  未找到 .env 文件，使用默认环境变量")
 	}
-	
+
 	// 设置 Gin 为发布模式，隐藏调试信息
 	gin.SetMode(gin.ReleaseMode)
-	
+
 	// 精美的启动横幅
 	printBanner()
 
 	// 初始化数据库
 	fmt.Println("🗄️  正在初始化数据库...")
-	
+
 	// 从环境变量构建 PostgreSQL 连接字符串
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s TimeZone=%s",
 		getEnv("DB_HOST", "localhost"),
@@ -44,7 +44,7 @@ func main() {
 		getEnv("DB_SSLMODE", "disable"),
 		getEnv("DB_TIMEZONE", "Asia/Shanghai"),
 	)
-	
+
 	db, err := database.InitDB(dsn)
 	if err != nil {
 		log.Fatalf("❌ 数据库初始化失败: %v", err)
@@ -74,7 +74,7 @@ func main() {
 	// 启动服务器
 	portNum := getEnv("SERVER_PORT", "8081")
 	port := ":" + portNum
-	
+
 	printServerInfo(portNum)
 
 	// 启动 HTTP 服务器
@@ -88,10 +88,10 @@ func main() {
 func checkDatabaseConfig(db *gorm.DB) error {
 	var count int64
 	db.Model(&models.ClientConfig{}).Count(&count)
-	
+
 	if count == 0 {
 		fmt.Println("   ⚠️  数据库为空，正在创建默认配置...")
-		
+
 		// 从环境变量读取默认配置
 		defaultConfigs := []models.ClientConfig{
 			{
@@ -103,7 +103,7 @@ func checkDatabaseConfig(db *gorm.DB) error {
 				Enabled:  true,
 			},
 			{
-				ClientID: "tr-default", 
+				ClientID: "tr-default",
 				Type:     "transmission",
 				Host:     getEnv("TR_HOST", "localhost:9091"),
 				Username: getEnv("TR_USERNAME", "admin"),
@@ -118,12 +118,12 @@ func checkDatabaseConfig(db *gorm.DB) error {
 			}
 			fmt.Printf("   ✨ 创建默认配置: %s (%s)\n", config.ClientID, config.Type)
 		}
-		
+
 		fmt.Println("   💡 请在 .env 文件中修改实际的客户端配置")
 		fmt.Printf("   📝 已创建 %d 个默认客户端配置\n", len(defaultConfigs))
 		return nil
 	}
-	
+
 	fmt.Printf("   ✨ 发现 %d 个客户端配置\n", count)
 	return nil
 }
@@ -131,19 +131,19 @@ func checkDatabaseConfig(db *gorm.DB) error {
 // loadClientsFromDB 从数据库加载客户端配置并创建适配器
 func loadClientsFromDB(db *gorm.DB) ([]clients.DownloaderClient, error) {
 	var configs []models.ClientConfig
-	
+
 	// 查询所有启用的配置
 	if err := db.Where("enabled = ?", true).Find(&configs).Error; err != nil {
 		return nil, fmt.Errorf("failed to query client configs: %w", err)
 	}
 
 	var adapters []clients.DownloaderClient
-	
+
 	// 遍历配置创建客户端适配器
 	for _, config := range configs {
 		var client clients.DownloaderClient
 		var err error
-		
+
 		switch config.Type {
 		case "qbittorrent":
 			client, err = qbittorrent.NewQbitClient(config.Host, config.Username, config.Password, config.ClientID)
@@ -153,20 +153,20 @@ func loadClientsFromDB(db *gorm.DB) ([]clients.DownloaderClient, error) {
 			log.Printf("⚠️  未知的客户端类型: %s (ID: %s)", config.Type, config.ClientID)
 			continue
 		}
-		
+
 		if err != nil {
 			log.Printf("❌ 创建客户端失败 [%s]: %v", config.ClientID, err)
 			continue
 		}
-		
+
 		adapters = append(adapters, client)
 		fmt.Printf("   ✨ %s (%s) 已连接\n", config.Type, config.ClientID)
 	}
-	
+
 	if len(adapters) == 0 {
 		return nil, fmt.Errorf("no valid client adapters were created")
 	}
-	
+
 	return adapters, nil
 }
 
@@ -188,7 +188,7 @@ func printBanner() {
 func printServerInfo(portNum string) {
 	fmt.Println("🌐 服务器访问地址:")
 	fmt.Printf("   📍 本机: http://localhost:%s/\n", portNum)
-	
+
 	// 获取内网IP地址
 	addrs, err := net.InterfaceAddrs()
 	if err == nil {
@@ -206,4 +206,3 @@ func printServerInfo(portNum string) {
 	}
 	fmt.Println()
 }
-

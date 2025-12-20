@@ -1,8 +1,11 @@
 package qbittorrent
 
 import (
-	"fmt"
 	"down-nexus-api/internal/models"
+	"fmt"
+	"strings"
+	"time"
+
 	qb "github.com/autobrr/go-qbittorrent"
 )
 
@@ -19,13 +22,13 @@ func NewQbitClient(host, username, password, clientID string) (*QbitClient, erro
 		Password: password,
 	}
 	qbClient := qb.NewClient(cfg)
-	
+
 	// Login to qBittorrent
 	err := qbClient.Login()
 	if err != nil {
 		return nil, fmt.Errorf("qBittorrent 登录失败: %w", err)
 	}
-	
+
 	return &QbitClient{
 		client:   qbClient,
 		clientID: clientID,
@@ -37,9 +40,20 @@ func (qc *QbitClient) GetTorrents() ([]models.UnifiedTorrent, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	var unifiedTorrents []models.UnifiedTorrent
 	for _, torrent := range torrents {
+		// 解析标签（qBittorrent 返回逗号分隔的字符串）
+		var tags []string
+		if torrent.Tags != "" {
+			for _, tag := range strings.Split(torrent.Tags, ",") {
+				tag = strings.TrimSpace(tag)
+				if tag != "" {
+					tags = append(tags, tag)
+				}
+			}
+		}
+
 		unifiedTorrent := models.UnifiedTorrent{
 			ClientID:      qc.clientID,
 			Name:          torrent.Name,
@@ -52,17 +66,43 @@ func (qc *QbitClient) GetTorrents() ([]models.UnifiedTorrent, error) {
 			Downloaded:    torrent.Downloaded,
 			Uploaded:      torrent.Uploaded,
 			ETA:           torrent.ETA,
+			AddedOn:       time.Unix(torrent.AddedOn, 0),
+			CompletedOn:   time.Unix(torrent.CompletionOn, 0),
+			SavePath:      torrent.SavePath,
+			Category:      torrent.Category,
+			Tags:          tags,
+			Tracker:       torrent.Tracker,
+			DownloadLimit: torrent.DlLimit,
+			UploadLimit:   torrent.UpLimit,
+			Ratio:         torrent.Ratio,
+			Priority:      int(torrent.Priority),
 		}
 		unifiedTorrents = append(unifiedTorrents, unifiedTorrent)
 	}
-	
+
 	return unifiedTorrents, nil
+}
+
+// GetTorrentDetails 获取种子详情
+func (qc *QbitClient) GetTorrentDetails(hash string) (*models.UnifiedTorrent, error) {
+	torrents, err := qc.GetTorrents()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, torrent := range torrents {
+		if torrent.Hash == hash {
+			return &torrent, nil
+		}
+	}
+
+	return nil, fmt.Errorf("种子未找到: %s", hash)
 }
 
 func (qc *QbitClient) AddTorrent(magnetURL string) error {
 	// Use qBittorrent's AddTorrentFromUrl method
 	options := map[string]string{}
-	
+
 	return qc.client.AddTorrentFromUrl(magnetURL, options)
 }
 

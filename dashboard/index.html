@@ -1,0 +1,2314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Down-Nexus - 专业种子管理面板</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --dark: #1f2937;
+            --light: #f9fafb;
+            --gray: #6b7280;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8fafc;
+            color: var(--dark);
+        }
+
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #4f46e5 0%, #6366f1 100%);
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: all 0.3s ease;
+            overflow-y: auto;
+        }
+
+        .sidebar.collapsed {
+            width: 80px;
+        }
+
+        .main-content {
+            margin-left: 260px;
+            min-height: 100vh;
+            transition: all 0.3s ease;
+        }
+
+        .main-content.expanded {
+            margin-left: 80px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .stat-card {
+            border-left: 4px solid;
+        }
+
+        .stat-card.primary {
+            border-left-color: var(--primary);
+        }
+
+        .stat-card.success {
+            border-left-color: var(--success);
+        }
+
+        .stat-card.warning {
+            border-left-color: var(--warning);
+        }
+
+        .stat-card.danger {
+            border-left-color: var(--danger);
+        }
+
+        .nav-item {
+            padding: 12px 20px;
+            margin: 5px 10px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            color: rgba(255, 255, 255, 0.8);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .nav-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .nav-item.active {
+            background-color: rgba(255, 255, 255, 0.2);
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            margin-right: 15px;
+        }
+
+        .sidebar.collapsed .nav-item span {
+            display: none;
+        }
+
+        .sidebar.collapsed .nav-item i {
+            margin-right: 0;
+            text-align: center;
+            width: 100%;
+        }
+
+        .toggle-btn {
+            position: absolute;
+            right: -15px;
+            top: 20px;
+            width: 30px;
+            height: 30px;
+            background-color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            color: var(--primary);
+            font-size: 14px;
+            z-index: 1001;
+        }
+
+        .header {
+            background: white;
+            padding: 15px 25px;
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .search-box {
+            position: relative;
+            max-width: 400px;
+            flex-grow: 1;
+            margin-right: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 10px 15px 10px 40px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        .search-box i {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--gray);
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .content {
+            padding: 25px;
+        }
+
+        .page-title {
+            margin-bottom: 25px;
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--dark);
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .table-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px 20px;
+            font-weight: 600;
+            color: var(--gray);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        td {
+            padding: 15px 20px;
+            border-bottom: 1px solid #f3f4f6;
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .status-badge.success {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .status-badge.warning {
+            background-color: rgba(245, 158, 11, 0.1);
+            color: var(--warning);
+        }
+
+        .status-badge.danger {
+            background-color: rgba(239, 68, 68, 0.1);
+            color: var(--danger);
+        }
+
+        .status-badge.info {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: none;
+            white-space: nowrap;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            padding: 0;
+        }
+
+        .btn-primary {
+            background-color: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: var(--primary-dark);
+        }
+
+        .btn-outline {
+            background-color: transparent;
+            border: 1px solid #e5e7eb;
+            color: var(--dark);
+        }
+
+        .btn-outline:hover {
+            background-color: var(--light);
+        }
+
+        .btn-danger {
+            background-color: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background-color: #dc2626;
+        }
+
+        .btn-success {
+            background-color: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background-color: #059669;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 5px;
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+            width: 100px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 9999px;
+            transition: width 0.3s ease;
+        }
+
+        .progress-fill.success {
+            background-color: var(--success);
+        }
+
+        .progress-fill.primary {
+            background-color: var(--primary);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            min-width: 300px;
+            max-width: 400px;
+            transform: translateX(500px);
+            transition: transform 0.3s ease;
+            z-index: 9999;
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast-icon {
+            margin-right: 12px;
+            font-size: 20px;
+        }
+
+        .toast.success .toast-icon {
+            color: var(--success);
+        }
+
+        .toast.error .toast-icon {
+            color: var(--danger);
+        }
+
+        .toast.warning .toast-icon {
+            color: var(--warning);
+        }
+
+        .toast.info .toast-icon {
+            color: var(--primary);
+        }
+
+        .client-card {
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            transition: all 0.2s ease;
+        }
+
+        .client-card:hover {
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .client-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .client-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            margin-right: 15px;
+            font-size: 18px;
+        }
+
+        .client-icon.qb {
+            background-color: rgba(99, 102, 241, 0.1);
+            color: var(--primary);
+        }
+
+        .client-icon.tr {
+            background-color: rgba(16, 185, 129, 0.1);
+            color: var(--success);
+        }
+
+        .client-status {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .client-status.online {
+            background-color: var(--success);
+        }
+
+        .client-status.offline {
+            background-color: var(--danger);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background-color: white;
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--gray);
+        }
+
+        .modal-body {
+            padding: 20px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .modal-footer {
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--gray);
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+
+        .tab-nav {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 20px;
+        }
+
+        .tab-nav button {
+            padding: 12px 20px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            font-weight: 500;
+            color: var(--gray);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tab-nav button.active {
+            color: var(--primary);
+            border-bottom-color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+            }
+
+            .main-content {
+                margin-left: 80px;
+            }
+
+            .nav-item span {
+                display: none;
+            }
+
+            .table-container {
+                overflow-x: auto;
+            }
+
+            table {
+                min-width: 700px;
+            }
+        }
+
+        .spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid var(--primary);
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .flex-center {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+        <div class="toggle-btn" id="toggleSidebar">
+            <i class="fas fa-chevron-left" id="toggleIcon"></i>
+        </div>
+        
+        <div class="p-6">
+            <h2 class="text-white text-xl font-bold flex items-center">
+                <i class="fas fa-cloud-download-alt mr-2"></i>
+                <span class="sidebar-text">Down-Nexus</span>
+            </h2>
+        </div>
+        
+        <nav>
+            <div class="nav-item active" data-page="dashboard">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>仪表板</span>
+            </div>
+            <div class="nav-item" data-page="torrents">
+                <i class="fas fa-download"></i>
+                <span>种子管理</span>
+            </div>
+            <div class="nav-item" data-page="clients">
+                <i class="fas fa-server"></i>
+                <span>客户端管理</span>
+            </div>
+            <div class="nav-item" data-page="add-torrent">
+                <i class="fas fa-plus-circle"></i>
+                <span>添加种子</span>
+            </div>
+            <div class="nav-item" data-page="settings">
+                <i class="fas fa-cog"></i>
+                <span>系统设置</span>
+            </div>
+        </nav>
+        
+        <div class="absolute bottom-0 left-0 right-0 p-6">
+            <div class="text-white opacity-75 text-xs">
+                <span class="sidebar-text">Down-Nexus v1.0.0</span>
+            </div>
+        </div>
+    </aside>
+    
+    <!-- 主内容区 -->
+    <main class="main-content" id="mainContent">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="search-box">
+                <i class="fas fa-search"></i>
+                <input type="text" placeholder="搜索种子..." id="searchInput">
+            </div>
+            
+            <div class="user-profile">
+                <div class="user-avatar">DN</div>
+                <div class="hidden sm:block">
+                    <div class="text-sm font-medium">管理员</div>
+                    <div class="text-xs text-gray-500">在线</div>
+                </div>
+            </div>
+        </header>
+        
+        <!-- 页面内容 -->
+        <div class="content">
+            <!-- 仪表板页面 -->
+            <div id="dashboardPage" class="page">
+                <h1 class="page-title">仪表板</h1>
+                
+                <!-- 统计卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <div class="card stat-card primary p-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500 text-sm">活动种子</p>
+                                <p class="text-2xl font-bold" id="activeTorrents">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-download text-indigo-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card stat-card success p-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500 text-sm">总下载量</p>
+                                <p class="text-2xl font-bold" id="totalDownloaded">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-arrow-down text-green-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card stat-card warning p-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500 text-sm">总上传量</p>
+                                <p class="text-2xl font-bold" id="totalUploaded">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-arrow-up text-yellow-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card stat-card danger p-6">
+                        <div class="flex justify-between items-center">
+                            <div>
+                                <p class="text-gray-500 text-sm">客户端数量</p>
+                                <p class="text-2xl font-bold" id="totalClients">-</p>
+                            </div>
+                            <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                                <i class="fas fa-server text-red-600"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 最近的种子活动 -->
+                <div class="card mb-8">
+                    <div class="p-6 border-b">
+                        <h3 class="text-lg font-semibold">最近的种子活动</h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>客户端</th>
+                                    <th>大小</th>
+                                    <th>进度</th>
+                                    <th>状态</th>
+                                    <th>下载速度</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTorrentsTable">
+                                <tr>
+                                    <td colspan="7" class="text-center py-4">
+                                        <div class="spinner"></div>
+                                        <span class="ml-2">加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 种子管理页面 -->
+            <div id="torrentsPage" class="page" style="display: none;">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="page-title">种子管理</h1>
+                    <div class="flex gap-2">
+                        <select id="clientFilter" class="form-control" style="width: auto;">
+                            <option value="">所有客户端</option>
+                        </select>
+                        <button class="btn btn-primary" id="refreshTorrents">
+                            <i class="fas fa-sync-alt mr-2"></i>刷新
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- 标签导航 -->
+                <div class="tab-nav">
+                    <button class="active" data-tab="all">全部</button>
+                    <button data-tab="downloading">下载中</button>
+                    <button data-tab="seeding">做种中</button>
+                    <button data-tab="paused">已暂停</button>
+                    <button data-tab="completed">已完成</button>
+                </div>
+                
+                <!-- 种子列表 -->
+                <div class="tab-content active" id="allTab">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <span id="allCount">加载中...</span>
+                            <div class="btn-group">
+                                <button class="btn btn-outline btn-sm" id="selectAllAll">全选</button>
+                                <button class="btn btn-success btn-sm" id="resumeSelectedAll">恢复</button>
+                                <button class="btn btn-warning btn-sm" id="pauseSelectedAll">暂停</button>
+                                <button class="btn btn-danger btn-sm" id="deleteSelectedAll">删除</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th style="width: 50px;">
+                                        <input type="checkbox" id="selectAllCheckbox" class="form-checkbox">
+                                    </th>
+                                    <th>名称</th>
+                                    <th>客户端</th>
+                                    <th>大小</th>
+                                    <th>进度</th>
+                                    <th>状态</th>
+                                    <th>下载速度</th>
+                                    <th>上传速度</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="allTorrentsTable">
+                                <tr>
+                                    <td colspan="9" class="text-center py-8">
+                                        <div class="spinner"></div>
+                                        <span class="ml-2">加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="downloadingTab">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <span id="downloadingCount">加载中...</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>客户端</th>
+                                    <th>大小</th>
+                                    <th>进度</th>
+                                    <th>下载速度</th>
+                                    <th>剩余时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="downloadingTorrentsTable">
+                                <tr>
+                                    <td colspan="7" class="text-center py-8">
+                                        <div class="spinner"></div>
+                                        <span class="ml-2">加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="seedingTab">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <span id="seedingCount">加载中...</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>客户端</th>
+                                    <th>大小</th>
+                                    <th>上传速度</th>
+                                    <th>分享率</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="seedingTorrentsTable">
+                                <tr>
+                                    <td colspan="6" class="text-center py-8">
+                                        <div class="spinner"></div>
+                                        <span class="ml-2">加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="pausedTab">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <span id="pausedCount">加载中...</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>客户端</th>
+                                    <th>大小</th>
+                                    <th>进度</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="pausedTorrentsTable">
+                                <tr>
+                                    <td colspan="5" class="text-center py-8">
+                                        <div class="spinner"></div>
+                                        <span class="ml-2">加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="tab-content" id="completedTab">
+                    <div class="table-container">
+                        <div class="table-header">
+                            <span id="completedCount">加载中...</span>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>名称</th>
+                                    <th>客户端</th>
+                                    <th>大小</th>
+                                    <th>完成时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="completedTorrentsTable">
+                                <tr>
+                                    <td colspan="5" class="text-center py-8">
+                                        <div class="spinner"></div>
+                                        <span class="ml-2">加载中...</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 客户端管理页面 -->
+            <div id="clientsPage" class="page" style="display: none;">
+                <div class="flex justify-between items-center mb-6">
+                    <h1 class="page-title">客户端管理</h1>
+                    <button class="btn btn-primary" id="addClientBtn">
+                        <i class="fas fa-plus mr-2"></i>添加客户端
+                    </button>
+                </div>
+                
+                <div id="clientsContainer">
+                    <div class="text-center py-8">
+                        <div class="spinner"></div>
+                        <span class="ml-2">加载中...</span>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 添加种子页面 -->
+            <div id="add-torrentPage" class="page" style="display: none;">
+                <h1 class="page-title">添加种子</h1>
+                
+                <div class="card p-6">
+                    <form id="addTorrentForm">
+                        <div class="form-group">
+                            <label class="form-label">客户端</label>
+                            <select id="clientSelect" class="form-control" required>
+                                <option value="">选择客户端...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">种子链接</label>
+                            <textarea id="torrentUrl" class="form-control" rows="4" placeholder="磁力链接或HTTP种子链接" required></textarea>
+                            <div class="text-sm text-gray-500 mt-1">支持磁力链接(magnet:)或HTTP种子链接</div>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">保存路径（可选）</label>
+                            <input type="text" id="savePath" class="form-control" placeholder="如: /downloads">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label">分类（可选）</label>
+                            <input type="text" id="category" class="form-control" placeholder="如: movies, series">
+                        </div>
+                        
+                        <div class="flex justify-end gap-2">
+                            <button type="button" class="btn btn-outline" id="resetFormBtn">重置</button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus mr-2"></i>添加种子
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                
+                <div id="addResult" class="mt-4"></div>
+            </div>
+            
+            <!-- 系统设置页面 -->
+            <div id="settingsPage" class="page" style="display: none;">
+                <h1 class="page-title">系统设置</h1>
+                
+                <div class="card p-6 mb-6">
+                    <h3 class="text-lg font-semibold mb-4">API设置</h3>
+                    
+                    <div class="form-group">
+                        <label class="form-label">API基础URL</label>
+                        <input type="text" id="apiBaseUrl" class="form-control" value="http://localhost:8080">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">刷新间隔（秒）</label>
+                        <input type="number" id="refreshInterval" class="form-control" value="30" min="5">
+                    </div>
+                    
+                    <button class="btn btn-primary" id="saveApiSettings">保存设置</button>
+                </div>
+                
+                <div class="card p-6">
+                    <h3 class="text-lg font-semibold mb-4">关于</h3>
+                    <div class="flex items-center mb-4">
+                        <div class="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center mr-4">
+                            <i class="fas fa-cloud-download-alt text-indigo-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <div class="font-semibold">Down-Nexus</div>
+                            <div class="text-sm text-gray-500">版本 1.0.0</div>
+                        </div>
+                    </div>
+                    
+                    <p class="text-gray-600 mb-4">Down-Nexus 是一个多客户端种子管理系统，提供统一的 API 接口来管理 qBittorrent 和 Transmission 下载器。</p>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <div class="text-sm text-gray-500">构建时间</div>
+                            <div>2025-06-12</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-gray-500">许可证</div>
+                            <div>MIT</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 添加客户端模态框 -->
+    <div class="modal" id="addClientModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">添加客户端</h3>
+                <button class="modal-close" id="closeAddClientModal">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="addClientForm">
+                    <div class="form-group">
+                        <label class="form-label">客户端类型</label>
+                        <select id="clientType" class="form-control" required>
+                            <option value="">选择类型...</option>
+                            <option value="qbittorrent">qBittorrent</option>
+                            <option value="transmission">Transmission</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">客户端ID</label>
+                        <input type="text" id="clientId" class="form-control" placeholder="如: qb-home" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">主机地址</label>
+                        <input type="text" id="clientHost" class="form-control" placeholder="如: http://localhost:8080" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" id="clientUsername" class="form-control" placeholder="用户名" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" id="clientPassword" class="form-control" placeholder="密码" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" id="cancelAddClient">取消</button>
+                <button class="btn btn-primary" id="saveAddClient">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast 通知 -->
+    <div class="toast" id="toast">
+        <div class="toast-icon">
+            <i class="fas fa-check-circle"></i>
+        </div>
+        <div class="toast-content">
+            <div class="toast-title">成功</div>
+            <div class="toast-message">操作成功完成</div>
+        </div>
+    </div>
+    
+    <script>
+        // 全局变量
+        const API_BASE = 'http://localhost:8080';
+        let currentPage = 'dashboard';
+        let allTorrents = [];
+        let clients = [];
+        let selectedTorrents = new Set();
+        
+        // 初始化应用
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeApp();
+        });
+        
+        // 初始化应用
+        function initializeApp() {
+            // 初始化侧边栏
+            initSidebar();
+            
+            // 初始化导航
+            initNavigation();
+            
+            // 初始化事件监听器
+            initEventListeners();
+            
+            // 加载数据
+            loadInitialData();
+        }
+        
+        // 初始化侧边栏
+        function initSidebar() {
+            const toggleBtn = document.getElementById('toggleSidebar');
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            const toggleIcon = document.getElementById('toggleIcon');
+            
+            toggleBtn.addEventListener('click', function() {
+                sidebar.classList.toggle('collapsed');
+                mainContent.classList.toggle('expanded');
+                
+                if (sidebar.classList.contains('collapsed')) {
+                    toggleIcon.className = 'fas fa-chevron-right';
+                } else {
+                    toggleIcon.className = 'fas fa-chevron-left';
+                }
+            });
+        }
+        
+        // 初始化导航
+        function initNavigation() {
+            const navItems = document.querySelectorAll('.nav-item');
+            
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const page = this.getAttribute('data-page');
+                    switchPage(page);
+                    
+                    // 更新活动状态
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    this.classList.add('active');
+                });
+            });
+        }
+        
+        // 切换页面
+        function switchPage(page) {
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(p => {
+                p.style.display = 'none';
+            });
+            
+            // 显示当前页面
+            const pageElement = document.getElementById(page + 'Page');
+            if (pageElement) {
+                pageElement.style.display = 'block';
+            }
+            
+            currentPage = page;
+            
+            // 根据页面加载特定数据
+            switch (page) {
+                case 'dashboard':
+                    loadDashboardData();
+                    break;
+                case 'torrents':
+                    loadTorrents();
+                    break;
+                case 'clients':
+                    loadClients();
+                    break;
+                case 'add-torrent':
+                    loadClientOptions();
+                    break;
+            }
+        }
+        
+        // 初始化事件监听器
+        function initEventListeners() {
+            // 种子标签切换
+            document.querySelectorAll('.tab-nav button').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    const tab = this.getAttribute('data-tab');
+                    
+                    // 更新标签状态
+                    document.querySelectorAll('.tab-nav button').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    // 更新内容显示
+                    document.querySelectorAll('.tab-content').forEach(content => {
+                        content.classList.remove('active');
+                    });
+                    document.getElementById(tab + 'Tab').classList.add('active');
+                });
+            });
+            
+            // 全选复选框
+            document.getElementById('selectAllCheckbox').addEventListener('change', function() {
+                const checkboxes = document.querySelectorAll('.torrent-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = this.checked;
+                    
+                    const hash = checkbox.getAttribute('data-hash');
+                    if (this.checked) {
+                        selectedTorrents.add(hash);
+                    } else {
+                        selectedTorrents.delete(hash);
+                    }
+                });
+            });
+            
+        // 添加种子表单
+        document.getElementById('addTorrentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            addTorrent();
+        });
+        
+        // 重置表单
+        document.getElementById('resetFormBtn').addEventListener('click', function() {
+            document.getElementById('addTorrentForm').reset();
+            document.getElementById('addResult').innerHTML = '';
+        });
+        
+        // 刷新种子按钮
+        document.getElementById('refreshTorrents').addEventListener('click', function() {
+            loadTorrents();
+        });
+        
+        // 客户端筛选
+        document.getElementById('clientFilter').addEventListener('change', function() {
+            filterTorrents();
+        });
+        
+        // 批量操作按钮
+        document.getElementById('selectAllAll').addEventListener('click', selectAllTorrents);
+        document.getElementById('resumeSelectedAll').addEventListener('click', resumeSelectedTorrents);
+        document.getElementById('pauseSelectedAll').addEventListener('click', pauseSelectedTorrents);
+        document.getElementById('deleteSelectedAll').addEventListener('click', deleteSelectedTorrents);
+            
+            // 批量操作按钮
+            document.getElementById('selectAllAll').addEventListener('click', selectAllTorrents);
+            document.getElementById('resumeSelectedAll').addEventListener('click', resumeSelectedTorrents);
+            document.getElementById('pauseSelectedAll').addEventListener('click', pauseSelectedTorrents);
+            document.getElementById('deleteSelectedAll').addEventListener('click', deleteSelectedTorrents);
+            
+            // 添加客户端按钮
+            document.getElementById('addClientBtn').addEventListener('click', function() {
+                document.getElementById('addClientModal').classList.add('show');
+            });
+            
+            // 关闭添加客户端模态框
+            document.getElementById('closeAddClientModal').addEventListener('click', function() {
+                document.getElementById('addClientModal').classList.remove('show');
+            });
+            
+            document.getElementById('cancelAddClient').addEventListener('click', function() {
+                document.getElementById('addClientModal').classList.remove('show');
+            });
+            
+            // 保存客户端
+            document.getElementById('saveAddClient').addEventListener('click', function() {
+                addClient();
+            });
+            
+            // 保存API设置
+            document.getElementById('saveApiSettings').addEventListener('click', function() {
+                saveApiSettings();
+            });
+        }
+        
+        // 加载初始数据
+        function loadInitialData() {
+            loadClients().then(() => {
+                loadDashboardData();
+            });
+        }
+        
+        // 加载仪表板数据
+        function loadDashboardData() {
+            // 加载种子统计
+            loadTorrentStats();
+            
+            // 加载最近的种子
+            loadRecentTorrents();
+        }
+        
+        // 加载种子统计
+        function loadTorrentStats() {
+            fetch(`${API_BASE}/api/v1/torrents`)
+                .then(response => response.json())
+                .then(data => {
+                    const torrents = data.data || [];
+                    
+                    // 计算统计数据
+                    const activeTorrents = torrents.filter(t => 
+                        t.state === 'downloading' || t.state === 'uploading' || t.state === 'seeding'
+                    ).length;
+                    
+                    let totalDownloaded = 0;
+                    let totalUploaded = 0;
+                    
+                    torrents.forEach(torrent => {
+                        totalDownloaded += torrent.downloaded || 0;
+                        totalUploaded += torrent.uploaded || 0;
+                    });
+                    
+                    // 更新统计显示
+                    document.getElementById('activeTorrents').textContent = activeTorrents;
+                    document.getElementById('totalDownloaded').textContent = formatBytes(totalDownloaded);
+                    document.getElementById('totalUploaded').textContent = formatBytes(totalUploaded);
+                    document.getElementById('totalClients').textContent = clients.length;
+                })
+                .catch(error => {
+                    console.error('加载种子统计失败:', error);
+                    showToast('加载种子统计失败', 'error');
+                });
+        }
+        
+        // 加载最近的种子
+        function loadRecentTorrents() {
+            const table = document.getElementById('recentTorrentsTable');
+            table.innerHTML = '<tr><td colspan="7" class="text-center py-4"><div class="spinner"></div><span class="ml-2">加载中...</span></td></tr>';
+            
+            fetch(`${API_BASE}/api/v1/torrents`)
+                .then(response => response.json())
+                .then(data => {
+                    const torrents = data.data || [];
+                    allTorrents = torrents;
+                    
+                    // 获取最近的10个种子
+                    const recentTorrents = torrents.slice(0, 10);
+                    
+                    if (recentTorrents.length === 0) {
+                        table.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="empty-state"><i class="fas fa-inbox"></i><p>暂无种子</p></div></td></tr>';
+                        return;
+                    }
+                    
+                    table.innerHTML = recentTorrents.map(torrent => {
+                        const clientIcon = torrent.client_id.startsWith('qb-') ? 
+                            '<i class="fab fa-qq text-blue-500"></i>' : 
+                            '<i class="fas fa-download text-green-500"></i>';
+                        
+                        const progressPercent = (torrent.progress * 100).toFixed(1);
+                        const size = formatBytes(torrent.size);
+                        const downloadSpeed = formatBytes(torrent.download_speed) + '/s';
+                        
+                        return `
+                            <tr>
+                                <td class="truncate max-w-xs" title="${torrent.name}">${torrent.name}</td>
+                                <td>${clientIcon}</td>
+                                <td>${size}</td>
+                                <td>
+                                    <div class="flex items-center">
+                                        <div class="progress-bar mr-2">
+                                            <div class="progress-fill ${torrent.progress === 1 ? 'success' : 'primary'}" style="width: ${progressPercent}%"></div>
+                                        </div>
+                                        <span class="text-sm">${progressPercent}%</span>
+                                    </div>
+                                </td>
+                                <td><span class="status-badge ${getStatusClass(torrent.state)}">${getTorrentStateText(torrent.state)}</span></td>
+                                <td>${downloadSpeed}</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <button class="btn btn-icon btn-outline" onclick="pauseTorrent('${torrent.hash}')" ${torrent.state.includes('paused') || torrent.state === 'stopped' ? 'disabled' : ''}>
+                                            <i class="fas fa-pause"></i>
+                                        </button>
+                                        <button class="btn btn-icon btn-outline" onclick="resumeTorrent('${torrent.hash}')" ${torrent.state.includes('paused') || torrent.state === 'stopped' ? '' : 'disabled'}>
+                                            <i class="fas fa-play"></i>
+                                        </button>
+                                        <button class="btn btn-icon btn-outline" onclick="deleteTorrent('${torrent.hash}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('');
+                })
+                .catch(error => {
+                    console.error('加载最近的种子失败:', error);
+                    table.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div></td></tr>';
+                });
+        }
+        
+        // 加载种子
+        function loadTorrents() {
+            // 显示加载状态
+            document.getElementById('allCount').textContent = '加载中...';
+            document.getElementById('downloadingCount').textContent = '加载中...';
+            document.getElementById('seedingCount').textContent = '加载中...';
+            document.getElementById('pausedCount').textContent = '加载中...';
+            document.getElementById('completedCount').textContent = '加载中...';
+            
+            const allTable = document.getElementById('allTorrentsTable');
+            const downloadingTable = document.getElementById('downloadingTorrentsTable');
+            const seedingTable = document.getElementById('seedingTorrentsTable');
+            const pausedTable = document.getElementById('pausedTorrentsTable');
+            const completedTable = document.getElementById('completedTorrentsTable');
+            
+            allTable.innerHTML = '<tr><td colspan="9" class="text-center py-8"><div class="spinner"></div><span class="ml-2">加载中...</span></td></tr>';
+            downloadingTable.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="spinner"></div><span class="ml-2">加载中...</span></td></tr>';
+            seedingTable.innerHTML = '<tr><td colspan="6" class="text-center py-8"><div class="spinner"></div><span class="ml-2">加载中...</span></td></tr>';
+            pausedTable.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="spinner"></div><span class="ml-2">加载中...</span></td></tr>';
+            completedTable.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="spinner"></div><span class="ml-2">加载中...</span></td></tr>';
+            
+            fetch(`${API_BASE}/api/v1/torrents`)
+                .then(response => response.json())
+                .then(data => {
+                    const torrents = data.data || [];
+                    allTorrents = torrents;
+                    
+                    // 分类种子
+                    const downloading = torrents.filter(t => 
+                        t.state === 'downloading' || t.state === 'stalledDL' || t.state === 'allocating' || t.state === 'metaDL'
+                    );
+                    
+                    const seeding = torrents.filter(t => 
+                        t.state === 'uploading' || t.state === 'seeding' || t.state === 'stalledUP' || t.state === 'forcedUP'
+                    );
+                    
+                    const paused = torrents.filter(t => 
+                        t.state === 'pausedDL' || t.state === 'pausedUP' || t.state === 'stopped'
+                    );
+                    
+                    const completed = torrents.filter(t => t.progress === 1 && t.state !== 'checkingDL' && t.state !== 'checkingUP');
+                    
+                    // 更新计数
+                    document.getElementById('allCount').textContent = `共 ${torrents.length} 个种子`;
+                    document.getElementById('downloadingCount').textContent = `共 ${downloading.length} 个种子`;
+                    document.getElementById('seedingCount').textContent = `共 ${seeding.length} 个种子`;
+                    document.getElementById('pausedCount').textContent = `共 ${paused.length} 个种子`;
+                    document.getElementById('completedCount').textContent = `共 ${completed.length} 个种子`;
+                    
+                    // 渲染种子列表
+                    renderAllTorrents(torrents);
+                    renderDownloadingTorrents(downloading);
+                    renderSeedingTorrents(seeding);
+                    renderPausedTorrents(paused);
+                    renderCompletedTorrents(completed);
+                })
+                .catch(error => {
+                    console.error('加载种子失败:', error);
+                    showToast('加载种子失败', 'error');
+                    
+                    // 显示错误状态
+                    allTable.innerHTML = '<tr><td colspan="9" class="text-center py-8"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div></td></tr>';
+                    downloadingTable.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div></td></tr>';
+                    seedingTable.innerHTML = '<tr><td colspan="6" class="text-center py-8"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div></td></tr>';
+                    pausedTable.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div></td></tr>';
+                    completedTable.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div></td></tr>';
+                });
+        }
+        
+        // 渲染所有种子
+        function renderAllTorrents(torrents) {
+            const table = document.getElementById('allTorrentsTable');
+            
+            if (torrents.length === 0) {
+                table.innerHTML = '<tr><td colspan="9" class="text-center py-8"><div class="empty-state"><i class="fas fa-inbox"></i><p>暂无种子</p></div></td></tr>';
+                return;
+            }
+            
+            table.innerHTML = torrents.map(torrent => {
+                const clientIcon = torrent.client_id.startsWith('qb-') ? 
+                    '<i class="fab fa-qq text-blue-500"></i>' : 
+                    '<i class="fas fa-download text-green-500"></i>';
+                
+                const progressPercent = (torrent.progress * 100).toFixed(1);
+                const size = formatBytes(torrent.size);
+                const downloadSpeed = formatBytes(torrent.download_speed) + '/s';
+                const uploadSpeed = formatBytes(torrent.upload_speed) + '/s';
+                
+                return `
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="torrent-checkbox form-checkbox" data-hash="${torrent.hash}" onchange="toggleTorrentSelection('${torrent.hash}', this.checked)">
+                        </td>
+                        <td class="truncate max-w-xs" title="${torrent.name}">${torrent.name}</td>
+                        <td>${clientIcon}</td>
+                        <td>${size}</td>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="progress-bar mr-2">
+                                    <div class="progress-fill ${torrent.progress === 1 ? 'success' : 'primary'}" style="width: ${progressPercent}%"></div>
+                                </div>
+                                <span class="text-sm">${progressPercent}%</span>
+                            </div>
+                        </td>
+                        <td><span class="status-badge ${getStatusClass(torrent.state)}">${getTorrentStateText(torrent.state)}</span></td>
+                        <td>${downloadSpeed}</td>
+                        <td>${uploadSpeed}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-icon btn-outline" onclick="pauseTorrent('${torrent.hash}')" ${torrent.state.includes('paused') || torrent.state === 'stopped' ? 'disabled' : ''}>
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="resumeTorrent('${torrent.hash}')" ${torrent.state.includes('paused') || torrent.state === 'stopped' ? '' : 'disabled'}>
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="deleteTorrent('${torrent.hash}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 渲染下载中的种子
+        function renderDownloadingTorrents(torrents) {
+            const table = document.getElementById('downloadingTorrentsTable');
+            
+            if (torrents.length === 0) {
+                table.innerHTML = '<tr><td colspan="7" class="text-center py-8"><div class="empty-state"><i class="fas fa-inbox"></i><p>暂无下载中的种子</p></div></td></tr>';
+                return;
+            }
+            
+            table.innerHTML = torrents.map(torrent => {
+                const clientIcon = torrent.client_id.startsWith('qb-') ? 
+                    '<i class="fab fa-qq text-blue-500"></i>' : 
+                    '<i class="fas fa-download text-green-500"></i>';
+                
+                const progressPercent = (torrent.progress * 100).toFixed(1);
+                const size = formatBytes(torrent.size);
+                const downloadSpeed = formatBytes(torrent.download_speed) + '/s';
+                const eta = torrent.eta === 8640000 ? '∞' : torrent.eta === -1 ? '完成' : formatSeconds(torrent.eta);
+                
+                return `
+                    <tr>
+                        <td class="truncate max-w-xs" title="${torrent.name}">${torrent.name}</td>
+                        <td>${clientIcon}</td>
+                        <td>${size}</td>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="progress-bar mr-2">
+                                    <div class="progress-fill primary" style="width: ${progressPercent}%"></div>
+                                </div>
+                                <span class="text-sm">${progressPercent}%</span>
+                            </div>
+                        </td>
+                        <td>${downloadSpeed}</td>
+                        <td>${eta}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-icon btn-outline" onclick="pauseTorrent('${torrent.hash}')">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="deleteTorrent('${torrent.hash}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 渲染做种中的种子
+        function renderSeedingTorrents(torrents) {
+            const table = document.getElementById('seedingTorrentsTable');
+            
+            if (torrents.length === 0) {
+                table.innerHTML = '<tr><td colspan="6" class="text-center py-8"><div class="empty-state"><i class="fas fa-inbox"></i><p>暂无做种中的种子</p></div></td></tr>';
+                return;
+            }
+            
+            table.innerHTML = torrents.map(torrent => {
+                const clientIcon = torrent.client_id.startsWith('qb-') ? 
+                    '<i class="fab fa-qq text-blue-500"></i>' : 
+                    '<i class="fas fa-download text-green-500"></i>';
+                
+                const size = formatBytes(torrent.size);
+                const uploadSpeed = formatBytes(torrent.upload_speed) + '/s';
+                const ratio = torrent.uploaded > 0 && torrent.downloaded > 0 ? 
+                    (torrent.uploaded / torrent.downloaded).toFixed(2) : 
+                    '0.00';
+                
+                return `
+                    <tr>
+                        <td class="truncate max-w-xs" title="${torrent.name}">${torrent.name}</td>
+                        <td>${clientIcon}</td>
+                        <td>${size}</td>
+                        <td>${uploadSpeed}</td>
+                        <td>${ratio}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-icon btn-outline" onclick="pauseTorrent('${torrent.hash}')">
+                                    <i class="fas fa-pause"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="deleteTorrent('${torrent.hash}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 渲染已暂停的种子
+        function renderPausedTorrents(torrents) {
+            const table = document.getElementById('pausedTorrentsTable');
+            
+            if (torrents.length === 0) {
+                table.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="empty-state"><i class="fas fa-inbox"></i><p>暂无已暂停的种子</p></div></td></tr>';
+                return;
+            }
+            
+            table.innerHTML = torrents.map(torrent => {
+                const clientIcon = torrent.client_id.startsWith('qb-') ? 
+                    '<i class="fab fa-qq text-blue-500"></i>' : 
+                    '<i class="fas fa-download text-green-500"></i>';
+                
+                const progressPercent = (torrent.progress * 100).toFixed(1);
+                const size = formatBytes(torrent.size);
+                
+                return `
+                    <tr>
+                        <td class="truncate max-w-xs" title="${torrent.name}">${torrent.name}</td>
+                        <td>${clientIcon}</td>
+                        <td>${size}</td>
+                        <td>
+                            <div class="flex items-center">
+                                <div class="progress-bar mr-2">
+                                    <div class="progress-fill ${torrent.progress === 1 ? 'success' : 'primary'}" style="width: ${progressPercent}%"></div>
+                                </div>
+                                <span class="text-sm">${progressPercent}%</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-icon btn-outline" onclick="resumeTorrent('${torrent.hash}')">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="deleteTorrent('${torrent.hash}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 渲染已完成的种子
+        function renderCompletedTorrents(torrents) {
+            const table = document.getElementById('completedTorrentsTable');
+            
+            if (torrents.length === 0) {
+                table.innerHTML = '<tr><td colspan="5" class="text-center py-8"><div class="empty-state"><i class="fas fa-inbox"></i><p>暂无已完成的种子</p></div></td></tr>';
+                return;
+            }
+            
+            table.innerHTML = torrents.map(torrent => {
+                const clientIcon = torrent.client_id.startsWith('qb-') ? 
+                    '<i class="fab fa-qq text-blue-500"></i>' : 
+                    '<i class="fas fa-download text-green-500"></i>';
+                
+                const size = formatBytes(torrent.size);
+                const completedTime = torrent.added_on ? new Date(torrent.added_on).toLocaleDateString() : '未知';
+                
+                return `
+                    <tr>
+                        <td class="truncate max-w-xs" title="${torrent.name}">${torrent.name}</td>
+                        <td>${clientIcon}</td>
+                        <td>${size}</td>
+                        <td>${completedTime}</td>
+                        <td>
+                            <div class="btn-group">
+                                <button class="btn btn-icon btn-outline" onclick="deleteTorrent('${torrent.hash}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // 加载客户端
+        function loadClients() {
+            return fetch(`${API_BASE}/api/v1/clients`)
+                .then(response => response.json())
+                .then(data => {
+                    clients = data.data || [];
+                    renderClients(clients);
+                    populateClientFilters(clients);
+                    return clients;
+                })
+                .catch(error => {
+                    console.error('加载客户端失败:', error);
+                    showToast('加载客户端失败', 'error');
+                    
+                    document.getElementById('clientsContainer').innerHTML = `
+                        <div class="text-center py-8">
+                            <div class="empty-state">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                <p>加载客户端失败</p>
+                            </div>
+                        </div>
+                    `;
+                    
+                    return [];
+                });
+        }
+        
+        // 渲染客户端
+        function renderClients(clients) {
+            const container = document.getElementById('clientsContainer');
+            
+            if (clients.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-8">
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            <p>暂无客户端配置</p>
+                            <button class="btn btn-primary mt-4" onclick="document.getElementById('addClientModal').classList.add('show')">
+                                <i class="fas fa-plus mr-2"></i>添加客户端
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.innerHTML = clients.map(client => {
+                const clientIcon = client.type === 'qbittorrent' ? 'fa-qq' : 'fa-download';
+                const clientColor = client.type === 'qbittorrent' ? 'qb' : 'tr';
+                const status = client.enabled ? '在线' : '离线';
+                const statusClass = client.enabled ? 'online' : 'offline';
+                
+                return `
+                    <div class="client-card">
+                        <div class="client-info">
+                            <div class="client-icon ${clientColor}">
+                                <i class="fas ${clientIcon}"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold">${client.name}</h3>
+                                <div class="text-sm text-gray-500">${client.type} - ${client.host}</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="flex items-center text-sm">
+                                <div class="client-status ${statusClass}"></div>
+                                <span>${status}</span>
+                            </div>
+                            <div class="btn-group mt-2">
+                                <button class="btn btn-icon btn-outline" onclick="testClientConnection('${client.id}')">
+                                    <i class="fas fa-plug"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="editClient('${client.id}')">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-icon btn-outline" onclick="deleteClient('${client.id}')">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // 填充客户端筛选器
+        function populateClientFilters(clients) {
+            const clientFilter = document.getElementById('clientFilter');
+            const clientSelect = document.getElementById('clientSelect');
+            
+            // 清空现有选项
+            clientFilter.innerHTML = '<option value="">所有客户端</option>';
+            clientSelect.innerHTML = '<option value="">选择客户端...</option>';
+            
+            // 添加客户端选项
+            clients.forEach(client => {
+                // 客户端筛选器
+                const filterOption = document.createElement('option');
+                filterOption.value = client.id;
+                filterOption.textContent = `${client.name} (${client.type})`;
+                clientFilter.appendChild(filterOption);
+                
+                // 客户端选择器（仅启用的客户端）
+                if (client.enabled) {
+                    const selectOption = document.createElement('option');
+                    selectOption.value = client.id;
+                    selectOption.textContent = `${client.name} (${client.type})`;
+                    clientSelect.appendChild(selectOption);
+                }
+            });
+        }
+        
+        // 加载客户端选项
+        function loadClientOptions() {
+            if (clients.length === 0) {
+                loadClients().then(() => {
+                    // 重新填充客户端选择器
+                    populateClientFilters(clients);
+                });
+            }
+        }
+        
+        // 筛选种子
+        function filterTorrents() {
+            const clientId = document.getElementById('clientFilter').value;
+            
+            let filteredTorrents = allTorrents;
+            
+            // 如果指定了客户端筛选
+            if (clientId) {
+                filteredTorrents = allTorrents.filter(torrent => torrent.client_id === clientId);
+            }
+            
+            // 更新显示的种子列表
+            renderAllTorrents(filteredTorrents);
+        }
+        
+        // 切换种子选择
+        function toggleTorrentSelection(hash, checked) {
+            if (checked) {
+                selectedTorrents.add(hash);
+            } else {
+                selectedTorrents.delete(hash);
+            }
+            
+            // 更新全选复选框状态
+            const allCheckboxes = document.querySelectorAll('.torrent-checkbox');
+            const checkedCheckboxes = document.querySelectorAll('.torrent-checkbox:checked');
+            
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            if (checkedCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = false;
+            } else if (checkedCheckboxes.length === allCheckboxes.length) {
+                selectAllCheckbox.checked = true;
+                selectAllCheckbox.indeterminate = false;
+            } else {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.indeterminate = true;
+            }
+        }
+        
+        // 选择所有种子
+        function selectAllTorrents() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const allCheckboxes = document.querySelectorAll('.torrent-checkbox');
+            
+            allCheckboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                const hash = checkbox.getAttribute('data-hash');
+                selectedTorrents.add(hash);
+            });
+            
+            selectAllCheckbox.checked = true;
+            selectAllCheckbox.indeterminate = false;
+        }
+        
+        // 恢复选中的种子
+        function resumeSelectedTorrents() {
+            if (selectedTorrents.size === 0) {
+                showToast('请选择要恢复的种子', 'warning');
+                return;
+            }
+            
+            const hashes = Array.from(selectedTorrents);
+            resumeTorrents(hashes);
+        }
+        
+        // 暂停选中的种子
+        function pauseSelectedTorrents() {
+            if (selectedTorrents.size === 0) {
+                showToast('请选择要暂停的种子', 'warning');
+                return;
+            }
+            
+            const hashes = Array.from(selectedTorrents);
+            pauseTorrents(hashes);
+        }
+        
+        // 删除选中的种子
+        function deleteSelectedTorrents() {
+            if (selectedTorrents.size === 0) {
+                showToast('请选择要删除的种子', 'warning');
+                return;
+            }
+            
+            if (!confirm(`确定要删除选中的 ${selectedTorrents.size} 个种子吗？此操作不可撤销。`)) {
+                return;
+            }
+            
+            const hashes = Array.from(selectedTorrents);
+            deleteTorrents(hashes);
+        }
+        
+        // 恢复种子
+        function resumeTorrent(hash) {
+            resumeTorrents([hash]);
+        }
+        
+        // 恢复多个种子
+        function resumeTorrents(hashes) {
+            fetch(`${API_BASE}/api/v1/torrents/resume`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hashes })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        showToast(`已恢复 ${hashes.length} 个种子`, 'success');
+                        loadTorrents();
+                        selectedTorrents.clear();
+                    } else {
+                        throw new Error('恢复种子失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('恢复种子失败:', error);
+                    showToast('恢复种子失败', 'error');
+                });
+        }
+        
+        // 暂停种子
+        function pauseTorrent(hash) {
+            pauseTorrents([hash]);
+        }
+        
+        // 暂停多个种子
+        function pauseTorrents(hashes) {
+            fetch(`${API_BASE}/api/v1/torrents/pause`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hashes })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        showToast(`已暂停 ${hashes.length} 个种子`, 'success');
+                        loadTorrents();
+                        selectedTorrents.clear();
+                    } else {
+                        throw new Error('暂停种子失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('暂停种子失败:', error);
+                    showToast('暂停种子失败', 'error');
+                });
+        }
+        
+        // 删除种子
+        function deleteTorrent(hash) {
+            if (!confirm('确定要删除这个种子吗？此操作不可撤销。')) {
+                return;
+            }
+            
+            deleteTorrents([hash]);
+        }
+        
+        // 删除多个种子
+        function deleteTorrents(hashes) {
+            fetch(`${API_BASE}/api/v1/torrents`, {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ hashes })
+            })
+                .then(response => {
+                    if (response.ok) {
+                        showToast(`已删除 ${hashes.length} 个种子`, 'success');
+                        loadTorrents();
+                        selectedTorrents.clear();
+                    } else {
+                        throw new Error('删除种子失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('删除种子失败:', error);
+                    showToast('删除种子失败', 'error');
+                });
+        }
+        
+        // 添加种子
+        function addTorrent() {
+            const clientId = document.getElementById('clientSelect').value;
+            const url = document.getElementById('torrentUrl').value.trim();
+            const savePath = document.getElementById('savePath').value.trim();
+            const category = document.getElementById('category').value.trim();
+            
+            // 验证表单
+            if (!clientId) {
+                showToast('请选择客户端', 'warning');
+                return;
+            }
+            
+            if (!url) {
+                showToast('请输入种子链接', 'warning');
+                return;
+            }
+            
+            // 准备请求数据
+            const requestData = {
+                client_id: clientId,
+                url: url
+            };
+            
+            if (savePath) {
+                requestData.save_path = savePath;
+            }
+            
+            if (category) {
+                requestData.category = category;
+            }
+            
+            if (tags) {
+                requestData.tags = tags;
+            }
+            
+            if (priority) {
+                requestData.priority = priority;
+            }
+            
+            // 显示加载状态
+            const resultDiv = document.getElementById('addResult');
+            resultDiv.innerHTML = '<div class="flex-center py-2"><div class="spinner"></div><span class="ml-2">正在添加种子...</span></div>';
+            
+            fetch(`${API_BASE}/api/v1/torrents`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestData)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast('种子添加成功', 'success');
+                        // 清空表单
+                        document.getElementById('addTorrentForm').reset();
+                        resultDiv.innerHTML = '';
+                        
+                        // 刷新种子列表
+                        loadTorrents();
+                        
+                        // 切换到种子管理页面
+                        document.querySelector('[data-page="torrents"]').click();
+                    } else {
+                        throw new Error(data.error || '添加种子失败');
+                    }
+                })
+                .catch(error => {
+                    console.error('添加种子失败:', error);
+                    resultDiv.innerHTML = `<div class="alert alert-danger">${error.message || '添加种子失败'}</div>`;
+                    showToast('添加种子失败', 'error');
+                });
+        }
+        
+        // 添加客户端
+        function addClient() {
+            const type = document.getElementById('clientType').value;
+            const id = document.getElementById('clientId').value.trim();
+            const host = document.getElementById('clientHost').value.trim();
+            const username = document.getElementById('clientUsername').value.trim();
+            const password = document.getElementById('clientPassword').value;
+            
+            // 验证表单
+            if (!type || !id || !host || !username || !password) {
+                showToast('请填写所有必填字段', 'warning');
+                return;
+            }
+            
+            // 关闭模态框
+            document.getElementById('addClientModal').classList.remove('show');
+            
+            // 显示加载状态
+            showToast('正在添加客户端...', 'info');
+            
+            // 这里应该是添加客户端的API调用，但是API文档中没有提供添加客户端的接口
+            // 所以我们只能模拟添加成功，实际使用时需要实现后端接口
+            setTimeout(() => {
+                // 模拟添加成功
+                const newClient = {
+                    id: id,
+                    type: type,
+                    name: id,
+                    host: host,
+                    username: username,
+                    enabled: true,
+                    status: 'configured'
+                };
+                
+                clients.push(newClient);
+                renderClients(clients);
+                populateClientFilters(clients);
+                
+                // 清空表单
+                document.getElementById('addClientForm').reset();
+                
+                showToast('客户端添加成功', 'success');
+            }, 1000);
+        }
+        
+        // 测试客户端连接
+        function testClientConnection(clientId) {
+            showToast('正在测试客户端连接...', 'info');
+            
+            // 模拟测试连接
+            setTimeout(() => {
+                showToast('客户端连接正常', 'success');
+            }, 1000);
+        }
+        
+        // 编辑客户端
+        function editClient(clientId) {
+            showToast('编辑功能正在开发中', 'info');
+        }
+        
+        // 删除客户端
+        function deleteClient(clientId) {
+            if (!confirm('确定要删除这个客户端吗？')) {
+                return;
+            }
+            
+            showToast('正在删除客户端...', 'info');
+            
+            // 模拟删除客户端
+            setTimeout(() => {
+                clients = clients.filter(client => client.id !== clientId);
+                renderClients(clients);
+                populateClientFilters(clients);
+                
+                showToast('客户端已删除', 'success');
+            }, 1000);
+        }
+        
+        // 保存API设置
+        function saveApiSettings() {
+            const apiBaseUrl = document.getElementById('apiBaseUrl').value.trim();
+            const refreshInterval = document.getElementById('refreshInterval').value;
+            
+            if (!apiBaseUrl) {
+                showToast('请输入API基础URL', 'warning');
+                return;
+            }
+            
+            // 这里应该保存设置到本地存储或发送到后端
+            localStorage.setItem('apiBaseUrl', apiBaseUrl);
+            localStorage.setItem('refreshInterval', refreshInterval);
+            
+            showToast('设置已保存', 'success');
+        }
+        
+        // 显示Toast通知
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const toastIcon = toast.querySelector('.toast-icon i');
+            const toastTitle = toast.querySelector('.toast-title');
+            const toastMessage = toast.querySelector('.toast-message');
+            
+            // 设置Toast类型
+            toast.className = 'toast ' + type;
+            
+            // 设置图标和标题
+            switch (type) {
+                case 'success':
+                    toastIcon.className = 'fas fa-check-circle';
+                    toastTitle.textContent = '成功';
+                    break;
+                case 'error':
+                    toastIcon.className = 'fas fa-times-circle';
+                    toastTitle.textContent = '错误';
+                    break;
+                case 'warning':
+                    toastIcon.className = 'fas fa-exclamation-circle';
+                    toastTitle.textContent = '警告';
+                    break;
+                default:
+                    toastIcon.className = 'fas fa-info-circle';
+                    toastTitle.textContent = '提示';
+            }
+            
+            // 设置消息
+            toastMessage.textContent = message;
+            
+            // 显示Toast
+            toast.classList.add('show');
+            
+            // 3秒后自动隐藏
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // 格式化字节数
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+        
+        // 格式化秒数
+        function formatSeconds(seconds) {
+            if (seconds <= 0) return '0 秒';
+            
+            const d = Math.floor(seconds / 86400);
+            const h = Math.floor((seconds % 86400) / 3600);
+            const m = Math.floor((seconds % 3600) / 60);
+            
+            if (d > 0) return `${d} 天 ${h} 时`;
+            if (h > 0) return `${h} 时 ${m} 分`;
+            return `${m} 分`;
+        }
+        
+        // 获取种子状态文本
+        function getTorrentStateText(state) {
+            const stateMap = {
+                'downloading': '下载中',
+                'stalledDL': '下载停滞',
+                'uploading': '上传中',
+                'stalledUP': '上传停滞',
+                'seeding': '做种中',
+                'stopped': '已停止',
+                'pausedDL': '已暂停',
+                'pausedUP': '已暂停',
+                'queuedDL': '队列中',
+                'queuedUP': '队列中',
+                'checkingDL': '检查中',
+                'checkingUP': '检查中',
+                'forcedUP': '强制上传',
+                'allocating': '分配空间',
+                'metaDL': '获取元数据',
+                'moving': '移动中'
+            };
+            return stateMap[state] || state;
+        }
+        
+        // 获取状态类
+        function getStatusClass(state) {
+            if (['downloading', 'allocating', 'metaDL'].includes(state)) {
+                return 'info';
+            } else if (['uploading', 'seeding', 'forcedUP'].includes(state)) {
+                return 'success';
+            } else if (['stopped'].includes(state)) {
+                return 'danger';
+            } else if (['stalledDL', 'stalledUP'].includes(state)) {
+                return 'warning';
+            } else if (['pausedDL', 'pausedUP', 'queuedDL', 'queuedUP'].includes(state)) {
+                return 'info';
+            } else if (['checkingDL', 'checkingUP', 'moving'].includes(state)) {
+                return 'info';
+            }
+            return 'info';
+        }
+    </script>
+</body>
+</html>

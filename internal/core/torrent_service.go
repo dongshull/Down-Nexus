@@ -2,20 +2,22 @@ package core
 
 import (
 	"sync"
+
 	"down-nexus-api/internal/models"
 	"down-nexus-api/pkg/clients"
+
 	"gorm.io/gorm"
 )
 
 type TorrentService struct {
 	clients []clients.DownloaderClient
-	db      *gorm.DB
+	Db      *gorm.DB
 }
 
 func NewTorrentService(clients []clients.DownloaderClient, db *gorm.DB) *TorrentService {
 	return &TorrentService{
 		clients: clients,
-		db:      db,
+		Db:      db,
 	}
 }
 
@@ -29,14 +31,14 @@ func (ts *TorrentService) GetAllTorrents() []models.UnifiedTorrent {
 		wg.Add(1)
 		go func(c clients.DownloaderClient) {
 			defer wg.Done()
-			
+
 			torrents, err := c.GetTorrents()
 			if err != nil {
 				// 在实际应用中，可能需要记录错误日志
 				// 这里暂时忽略错误，继续处理其他下载器
 				return
 			}
-			
+
 			// 使用互斥锁安全地合并结果
 			mutex.Lock()
 			allTorrents = append(allTorrents, torrents...)
@@ -60,16 +62,16 @@ func (ts *TorrentService) AddTorrent(magnetURL string, clientID string) error {
 		if err != nil {
 			continue
 		}
-		
+
 		// 如果这个客户端有种子且 ClientID 匹配
 		if len(torrents) > 0 && torrents[0].ClientID == clientID {
 			return client.AddTorrent(magnetURL)
 		}
-		
+
 		// 如果客户端没有种子，我们需要创建一个临时种子来检查 ClientID
 		// 这种情况比较复杂，可能需要修改接口设计
 	}
-	
+
 	// 如果没有找到匹配的客户端，返回错误
 	return &ClientNotFoundError{ClientID: clientID}
 }
@@ -81,7 +83,7 @@ func (ts *TorrentService) PauseTorrent(clientID string, hash string) error {
 			return client.PauseTorrent(hash)
 		}
 	}
-	
+
 	// 如果没有找到匹配的客户端，返回错误
 	return &ClientNotFoundError{ClientID: clientID}
 }
@@ -93,7 +95,7 @@ func (ts *TorrentService) ResumeTorrent(clientID string, hash string) error {
 			return client.ResumeTorrent(hash)
 		}
 	}
-	
+
 	// 如果没有找到匹配的客户端，返回错误
 	return &ClientNotFoundError{ClientID: clientID}
 }
@@ -105,7 +107,7 @@ func (ts *TorrentService) DeleteTorrent(clientID string, hash string, deleteFile
 			return client.DeleteTorrent(hash, deleteFiles)
 		}
 	}
-	
+
 	// 如果没有找到匹配的客户端，返回错误
 	return &ClientNotFoundError{ClientID: clientID}
 }
@@ -122,6 +124,16 @@ func (e *ClientNotFoundError) Error() string {
 // GetClientConfigs 获取所有客户端配置
 func (ts *TorrentService) GetClientConfigs() ([]models.ClientConfig, error) {
 	var configs []models.ClientConfig
-	err := ts.db.Find(&configs).Error
+	err := ts.Db.Find(&configs).Error
 	return configs, err
+}
+
+// GetClient 根据客户端ID获取客户端实例
+func (ts *TorrentService) GetClient(clientID string) clients.DownloaderClient {
+	for _, client := range ts.clients {
+		if client.GetClientID() == clientID {
+			return client
+		}
+	}
+	return nil
 }
